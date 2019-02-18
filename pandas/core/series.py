@@ -3228,9 +3228,9 @@ Name: Max Speed, dtype: float64
             When there are duplicate values that cannot all fit in a
             Series of `n` elements:
 
-            - ``first`` : return the first `n` occurrences in the 
+            - ``first`` : return the first `n` occurrences in the
                 given index order.
-            - ``last`` : return the last `n` occurrences in the 
+            - ``last`` : return the last `n` occurrences in the
                 reverse of the given index order.
             - ``all`` : keep all occurrences. This can result in a Series of
                 size larger than `n`.
@@ -3327,14 +3327,18 @@ Name: Max Speed, dtype: float64
             Series of `n` elements:
 
 <<<<<<< HEAD
+<<<<<<< HEAD
             - ``first`` : return the first `n` occurrences in order
                 of appearance.
             - ``last`` : return the last `n` occurrences in reverse
                 order of appearance.
 =======
             - ``first`` : return the first `n` occurrences in the 
+=======
+            - ``first`` : return the first `n` occurrences in the
+>>>>>>> Fix PEP8 issues
                 given index order.
-            - ``last`` : return the last `n` occurrences in the 
+            - ``last`` : return the last `n` occurrences in the
                 reverse of the given index order.
 >>>>>>> Fix PEP8 issues and a typo
             - ``all`` : keep all occurrences. This can result in a Series of
