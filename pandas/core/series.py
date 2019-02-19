@@ -3235,8 +3235,10 @@ Name: Max Speed, dtype: float64
             - ``all`` : keep all occurrences. This can result in a Series of
                 size larger than `n`.
 
-        The `keep` parameter determines which ones to keep when there are duplicates.
-        Regardless of `keep`, the result will be sorted by the row label.
+        The `keep` parameter determines which ones to keep 
+        when there are duplicates.
+        Regardless of `keep`, the result will be sorted 
+        by the row label.
 
         Returns
         -------
@@ -3346,9 +3348,11 @@ Name: Max Speed, dtype: float64
 >>>>>>> Fix PEP8 issues and a typo
             - ``all`` : keep all occurrences. This can result in a Series of
                 size larger than `n`.
-            
-        The `keep` parameter determines which ones to keep when there are duplicates.
-        Regardless of `keep`, the result will be sorted by the row label.
+
+        The `keep` parameter determines which ones to keep 
+        when there are duplicates.
+        Regardless of `keep`, the result will be sorted 
+        by the row label.
 
         Returns
         -------
