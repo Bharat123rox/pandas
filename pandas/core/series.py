@@ -3229,16 +3229,17 @@ Name: Max Speed, dtype: float64
             Series of `n` elements:
 
             - ``first`` : return the first `n` occurrences in the
-                given index order.
-            - ``last`` : return the last `n` occurrences in the
-                reverse of the given index order.
+                index order.
+            - ``last`` : return the last `n` occurrences in the reverse
+                index order.
             - ``all`` : keep all occurrences. This can result in a Series of
                 size larger than `n`.
 
-        The `keep` parameter determines which ones to keep 
-        when there are duplicates.
-        Regardless of `keep`, the result will be sorted 
-        by the row label.
+            The `keep` parameter determines which ones to keep
+            when there are duplicates and returns them in the
+            order of appearance.
+            Regardless of `keep`, the result will be sorted
+            by the row label.
 
         Returns
         -------
@@ -3341,18 +3342,32 @@ Name: Max Speed, dtype: float64
             - ``first`` : return the first `n` occurrences in the 
 =======
             - ``first`` : return the first `n` occurrences in the
+<<<<<<< HEAD
 >>>>>>> Fix PEP8 issues
                 given index order.
             - ``last`` : return the last `n` occurrences in the
                 reverse of the given index order.
 >>>>>>> Fix PEP8 issues and a typo
+=======
+                index order.
+            - ``last`` : return the last `n` occurrences in the reverse
+                index order.
+>>>>>>> Take suggestions from @TomAugspurger and @WillAyd to improve readability
             - ``all`` : keep all occurrences. This can result in a Series of
                 size larger than `n`.
 
+<<<<<<< HEAD
         The `keep` parameter determines which ones to keep 
         when there are duplicates.
         Regardless of `keep`, the result will be sorted 
         by the row label.
+=======
+            The `keep` parameter determines which ones to keep
+            when there are duplicates and returns them in the
+            order of appearance.
+            Regardless of `keep`, the result will be sorted
+            by the row label.
+>>>>>>> Take suggestions from @TomAugspurger and @WillAyd to improve readability
 
         Returns
         -------
