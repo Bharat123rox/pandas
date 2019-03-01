@@ -3228,16 +3228,13 @@ Name: Max Speed, dtype: float64
             When there are duplicate values that cannot all fit in a
             Series of `n` elements:
 
-            - ``first`` : return the first `n` occurrences in the
-                index order.
-            - ``last`` : return the last `n` occurrences in the reverse
-                index order.
+            - ``first`` : return the first `n` occurrences in order
+                of appearance.
+            - ``last`` : return the last `n` occurrences in reverse
+                order of appearance.
             - ``all`` : keep all occurrences. This can result in a Series of
                 size larger than `n`.
 
-            The `keep` parameter determines which ones to keep
-            when there are duplicates and returns them in the
-            order of appearance.
             Regardless of `keep`, the result will be sorted
             by the row label.
 
@@ -3331,43 +3328,21 @@ Name: Max Speed, dtype: float64
         keep : {'first', 'last', 'all'}, default 'first'
             When there are duplicate values that cannot all fit in a
             Series of `n` elements:
-
-<<<<<<< HEAD
-<<<<<<< HEAD
             - ``first`` : return the first `n` occurrences in order
                 of appearance.
             - ``last`` : return the last `n` occurrences in reverse
                 order of appearance.
-=======
-            - ``first`` : return the first `n` occurrences in the 
-=======
             - ``first`` : return the first `n` occurrences in the
-<<<<<<< HEAD
->>>>>>> Fix PEP8 issues
-                given index order.
-            - ``last`` : return the last `n` occurrences in the
-                reverse of the given index order.
->>>>>>> Fix PEP8 issues and a typo
-=======
                 index order.
             - ``last`` : return the last `n` occurrences in the reverse
                 index order.
->>>>>>> Take suggestions from @TomAugspurger and @WillAyd to improve readability
             - ``all`` : keep all occurrences. This can result in a Series of
                 size larger than `n`.
-
-<<<<<<< HEAD
-        The `keep` parameter determines which ones to keep 
-        when there are duplicates.
-        Regardless of `keep`, the result will be sorted 
-        by the row label.
-=======
             The `keep` parameter determines which ones to keep
             when there are duplicates and returns them in the
             order of appearance.
             Regardless of `keep`, the result will be sorted
             by the row label.
->>>>>>> Take suggestions from @TomAugspurger and @WillAyd to improve readability
 
         Returns
         -------
