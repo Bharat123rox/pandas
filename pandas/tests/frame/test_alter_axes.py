@@ -1,14 +1,10 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
-
 from datetime import datetime, timedelta
 import inspect
 
 import numpy as np
 import pytest
 
-from pandas.compat import PY2, lrange
+from pandas.compat import lrange
 
 from pandas.core.dtypes.common import (
     is_categorical_dtype, is_interval_dtype, is_object_dtype)
@@ -201,7 +197,8 @@ class TestDataFrameAlterAxes():
         # need to adapt first drop for case that both keys are 'A' --
         # cannot drop the same column twice;
         # use "is" because == would give ambiguous Boolean error for containers
-        first_drop = False if (keys[0] is 'A' and keys[1] is 'A') else drop
+        first_drop = False if (
+            keys[0] is 'A' and keys[1] is 'A') else drop  # noqa: F632
 
         # to test against already-tested behaviour, we add sequentially,
         # hence second append always True; must wrap keys in list, otherwise
@@ -301,7 +298,7 @@ class TestDataFrameAlterAxes():
     def test_set_index_custom_label_type(self):
         # GH 24969
 
-        class Thing(object):
+        class Thing:
             def __init__(self, name, color):
                 self.name = name
                 self.color = color
@@ -872,6 +869,23 @@ class TestDataFrameAlterAxes():
                              columns=["a"])
         tm.assert_frame_equal(df, expected)
 
+    def test_rename_errors_raises(self):
+        df = DataFrame(columns=['A', 'B', 'C', 'D'])
+        with pytest.raises(KeyError, match='\'E\'] not found in axis'):
+            df.rename(columns={'A': 'a', 'E': 'e'}, errors='raise')
+
+    @pytest.mark.parametrize('mapper, errors, expected_columns', [
+        ({'A': 'a', 'E': 'e'}, 'ignore', ['a', 'B', 'C', 'D']),
+        ({'A': 'a'}, 'raise', ['a', 'B', 'C', 'D']),
+        (str.lower, 'raise', ['a', 'b', 'c', 'd'])])
+    def test_rename_errors(self, mapper, errors, expected_columns):
+        # GH 13473
+        # rename now works with errors parameter
+        df = DataFrame(columns=['A', 'B', 'C', 'D'])
+        result = df.rename(columns=mapper, errors=errors)
+        expected = DataFrame(columns=expected_columns)
+        tm.assert_frame_equal(result, expected)
+
     def test_reorder_levels(self):
         index = MultiIndex(levels=[['bar'], ['one', 'two', 'three'], [0, 1]],
                            codes=[[0, 0, 0, 0, 0, 0],
@@ -1255,7 +1269,7 @@ class TestDataFrameAlterAxes():
             df.rename(id, mapper=id)
 
     def test_reindex_api_equivalence(self):
-            # equivalence of the labels/axis and index/columns API's
+        # equivalence of the labels/axis and index/columns API's
         df = DataFrame([[1, 2, 3], [3, 4, 5], [5, 6, 7]],
                        index=['a', 'b', 'c'],
                        columns=['d', 'e', 'f'])
@@ -1324,14 +1338,12 @@ class TestDataFrameAlterAxes():
         with tm.assert_produces_warning(FutureWarning):
             df.rename({0: 10}, {"A": "B"})
 
-    @pytest.mark.skipif(PY2, reason="inspect.signature")
     def test_rename_signature(self):
         sig = inspect.signature(DataFrame.rename)
         parameters = set(sig.parameters)
         assert parameters == {"self", "mapper", "index", "columns", "axis",
-                              "inplace", "copy", "level"}
+                              "inplace", "copy", "level", "errors"}
 
-    @pytest.mark.skipif(PY2, reason="inspect.signature")
     def test_reindex_signature(self):
         sig = inspect.signature(DataFrame.reindex)
         parameters = set(sig.parameters)
@@ -1362,7 +1374,7 @@ class TestDataFrameAlterAxes():
         tm.assert_frame_equal(result, expected)
 
 
-class TestIntervalIndex(object):
+class TestIntervalIndex:
 
     def test_setitem(self):
 

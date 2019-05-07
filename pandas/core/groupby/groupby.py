@@ -12,13 +12,16 @@ from contextlib import contextmanager
 import datetime
 from functools import partial, wraps
 import types
+from typing import FrozenSet, List, Optional, Tuple, Type, Union
 import warnings
 
 import numpy as np
 
-from pandas._libs import Timestamp, groupby as libgroupby
-import pandas.compat as compat
-from pandas.compat import range, set_function_name, zip
+from pandas._config.config import option_context
+
+from pandas._libs import Timestamp
+import pandas._libs.groupby as libgroupby
+from pandas.compat import set_function_name
 from pandas.compat.numpy import function as nv
 from pandas.errors import AbstractMethodError
 from pandas.util._decorators import Appender, Substitution, cache_readonly
@@ -36,7 +39,6 @@ import pandas.core.algorithms as algorithms
 from pandas.core.base import (
     DataError, GroupByError, PandasObject, SelectionMixin, SpecificationError)
 import pandas.core.common as com
-from pandas.core.config import option_context
 from pandas.core.frame import DataFrame
 from pandas.core.generic import NDFrame
 from pandas.core.groupby import base
@@ -221,8 +223,7 @@ See more `here
 
 Examples
 --------
-%(examples)s
-"""
+%(examples)s"""
 
 _transform_template = """
 Call function producing a like-indexed %(klass)s on each group and
@@ -325,7 +326,7 @@ def _group_selection_context(groupby):
 
 class _GroupBy(PandasObject, SelectionMixin):
     _group_selection = None
-    _apply_whitelist = frozenset()
+    _apply_whitelist = frozenset()  # type: FrozenSet[str]
 
     def __init__(self, obj, keys=None, axis=0, level=None,
                  grouper=None, exclusions=None, selection=None, as_index=True,
@@ -875,7 +876,7 @@ b  2""")
         if self.grouper._filter_empty_groups:
 
             mask = counts.ravel() > 0
-            for name, result in compat.iteritems(output):
+            for name, result in output.items():
 
                 # since we are masking, make sure that we have a float object
                 values = result
@@ -1040,8 +1041,7 @@ class GroupBy(_GroupBy):
         Shared func to call any / all Cython GroupBy implementations.
         """
 
-        def objs_to_bool(vals):
-            # type: np.ndarray -> (np.ndarray, typing.Type)
+        def objs_to_bool(vals: np.ndarray) -> Tuple[np.ndarray, Type]:
             if is_object_dtype(vals):
                 vals = np.array([bool(x) for x in vals])
             else:
@@ -1049,8 +1049,7 @@ class GroupBy(_GroupBy):
 
             return vals.view(np.uint8), np.bool
 
-        def result_to_bool(result, inference):
-            # type: (np.ndarray, typing.Type) -> np.ndarray
+        def result_to_bool(result: np.ndarray, inference: Type) -> np.ndarray:
             return result.astype(inference, copy=False)
 
         return self._get_cythonized_result('group_any_all', self.grouper,
@@ -1098,7 +1097,8 @@ class GroupBy(_GroupBy):
         # defined here for API doc
         raise NotImplementedError
 
-    @Substitution(name='groupby', see_also=_common_see_also)
+    @Substitution(name='groupby')
+    @Substitution(see_also=_common_see_also)
     def mean(self, *args, **kwargs):
         """
         Compute mean of groups, excluding missing values.
@@ -1106,9 +1106,7 @@ class GroupBy(_GroupBy):
         Returns
         -------
         pandas.Series or pandas.DataFrame
-
         %(see_also)s
-
         Examples
         --------
         >>> df = pd.DataFrame({'A': [1, 1, 2, 1, 2],
@@ -1119,7 +1117,6 @@ class GroupBy(_GroupBy):
         each group.
 
         >>> df.groupby('A').mean()
-        >>>
              B         C
         A
         1  3.0  1.333333
@@ -1128,7 +1125,6 @@ class GroupBy(_GroupBy):
         Groupby two columns and return the mean of the remaining column.
 
         >>> df.groupby(['A', 'B']).mean()
-        >>>
                C
         A B
         1 2.0  2
@@ -1140,7 +1136,6 @@ class GroupBy(_GroupBy):
         the group.
 
         >>> df.groupby('A')['B'].mean()
-        >>>
         A
         1    3.0
         2    4.0
@@ -1546,16 +1541,18 @@ class GroupBy(_GroupBy):
         return self._fill('bfill', limit=limit)
     bfill = backfill
 
-    @Substitution(name='groupby', see_also=_common_see_also)
-    def nth(self, n, dropna=None):
+    @Substitution(name='groupby')
+    @Substitution(see_also=_common_see_also)
+    def nth(self,
+            n: Union[int, List[int]],
+            dropna: Optional[str] = None) -> DataFrame:
         """
         Take the nth row from each group if n is an int, or a subset of rows
         if n is a list of ints.
 
         If dropna, will take the nth non-null row, dropna is either
-        Truthy (if a Series) or 'all', 'any' (if a DataFrame);
-        this is equivalent to calling dropna(how=dropna) before the
-        groupby.
+        'all' or 'any'; this is equivalent to calling dropna(how=dropna)
+        before the groupby.
 
         Parameters
         ----------
@@ -1564,9 +1561,7 @@ class GroupBy(_GroupBy):
         dropna : None or str, optional
             apply the specified dropna operation before counting which row is
             the nth row. Needs to be None, 'any' or 'all'
-
         %(see_also)s
-
         Examples
         --------
 
@@ -1620,33 +1615,42 @@ class GroupBy(_GroupBy):
         4  2  5.0
         """
 
-        if isinstance(n, int):
-            nth_values = [n]
-        elif isinstance(n, (set, list, tuple)):
-            nth_values = list(set(n))
-            if dropna is not None:
-                raise ValueError(
-                    "dropna option with a list of nth values is not supported")
-        else:
+        valid_containers = (set, list, tuple)
+        if not isinstance(n, (valid_containers, int)):
             raise TypeError("n needs to be an int or a list/set/tuple of ints")
 
-        nth_values = np.array(nth_values, dtype=np.intp)
-        self._set_group_selection()
-
         if not dropna:
-            mask_left = np.in1d(self._cumcount_array(), nth_values)
+
+            if isinstance(n, int):
+                nth_values = [n]
+            elif isinstance(n, valid_containers):
+                nth_values = list(set(n))
+
+            nth_array = np.array(nth_values, dtype=np.intp)
+            self._set_group_selection()
+
+            mask_left = np.in1d(self._cumcount_array(), nth_array)
             mask_right = np.in1d(self._cumcount_array(ascending=False) + 1,
-                                 -nth_values)
+                                 -nth_array)
             mask = mask_left | mask_right
+
+            ids, _, _ = self.grouper.group_info
+
+            # Drop NA values in grouping
+            mask = mask & (ids != -1)
 
             out = self._selected_obj[mask]
             if not self.as_index:
                 return out
 
-            ids, _, _ = self.grouper.group_info
             out.index = self.grouper.result_index[ids[mask]]
 
             return out.sort_index() if self.sort else out
+
+        # dropna is truthy
+        if isinstance(n, valid_containers):
+            raise ValueError(
+                "dropna option with a list of nth values is not supported")
 
         if dropna not in ['any', 'all']:
             if isinstance(self._selected_obj, Series) and dropna is True:
@@ -1682,7 +1686,7 @@ class GroupBy(_GroupBy):
 
         else:
 
-            # create a grouper with the original parameters, but on the dropped
+            # create a grouper with the original parameters, but on dropped
             # object
             from pandas.core.groupby.grouper import _get_grouper
             grouper, _, _ = _get_grouper(dropped, key=self.keys,
@@ -1690,7 +1694,8 @@ class GroupBy(_GroupBy):
                                          sort=self.sort,
                                          mutated=self.mutated)
 
-        grb = dropped.groupby(grouper, as_index=self.as_index, sort=self.sort)
+        grb = dropped.groupby(
+            grouper, as_index=self.as_index, sort=self.sort)
         sizes, result = grb.size(), grb.nth(n)
         mask = (sizes < max_len).values
 
@@ -1742,8 +1747,9 @@ class GroupBy(_GroupBy):
         b    3.0
         """
 
-        def pre_processor(vals):
-            # type: np.ndarray -> (np.ndarray, Optional[typing.Type])
+        def pre_processor(
+                vals: np.ndarray
+        ) -> Tuple[np.ndarray, Optional[Type]]:
             if is_object_dtype(vals):
                 raise TypeError("'quantile' cannot be performed against "
                                 "'object' dtypes!")
@@ -1757,8 +1763,10 @@ class GroupBy(_GroupBy):
 
             return vals, inference
 
-        def post_processor(vals, inference):
-            # type: (np.ndarray, Optional[typing.Type]) -> np.ndarray
+        def post_processor(
+                vals: np.ndarray,
+                inference: Optional[Type]
+        ) -> np.ndarray:
             if inference:
                 # Check for edge case
                 if not (is_integer_dtype(inference) and
@@ -2021,7 +2029,7 @@ class GroupBy(_GroupBy):
             Function to be applied to result of Cython function. Should accept
             an array of values as the first argument and type inferences as its
             second argument, i.e. the signature should be
-            (ndarray, typing.Type).
+            (ndarray, Type).
         **kwargs : dict
             Extra arguments to be passed back to Cython funcs
 
@@ -2132,21 +2140,20 @@ class GroupBy(_GroupBy):
         shifted = fill_grp.shift(periods=periods, freq=freq)
         return (filled / shifted) - 1
 
-    @Substitution(name='groupby', see_also=_common_see_also)
+    @Substitution(name='groupby')
+    @Substitution(see_also=_common_see_also)
     def head(self, n=5):
         """
         Return first n rows of each group.
 
         Essentially equivalent to ``.apply(lambda x: x.head(n))``,
         except ignores as_index flag.
-
         %(see_also)s
-
         Examples
         --------
 
         >>> df = pd.DataFrame([[1, 2], [1, 4], [5, 6]],
-                              columns=['A', 'B'])
+        ...                   columns=['A', 'B'])
         >>> df.groupby('A', as_index=False).head(1)
            A  B
         0  1  2
@@ -2160,21 +2167,20 @@ class GroupBy(_GroupBy):
         mask = self._cumcount_array() < n
         return self._selected_obj[mask]
 
-    @Substitution(name='groupby', see_also=_common_see_also)
+    @Substitution(name='groupby')
+    @Substitution(see_also=_common_see_also)
     def tail(self, n=5):
         """
         Return last n rows of each group.
 
         Essentially equivalent to ``.apply(lambda x: x.tail(n))``,
         except ignores as_index flag.
-
         %(see_also)s
-
         Examples
         --------
 
         >>> df = pd.DataFrame([['a', 1], ['a', 2], ['b', 1], ['b', 2]],
-                              columns=['A', 'B'])
+        ...                   columns=['A', 'B'])
         >>> df.groupby('A').tail(1)
            A  B
         1  a  2

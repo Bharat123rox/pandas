@@ -1,15 +1,10 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import print_function
-
-# pylint: disable-msg=W0612,E1101
 from copy import deepcopy
 import pydoc
 
 import numpy as np
 import pytest
 
-from pandas.compat import PY2, long, lrange, range
+from pandas.compat import lrange
 
 import pandas as pd
 from pandas import (
@@ -20,7 +15,7 @@ from pandas.util.testing import (
     assert_almost_equal, assert_frame_equal, assert_series_equal)
 
 
-class SharedWithSparse(object):
+class SharedWithSparse:
     """
     A collection of tests DataFrame and SparseDataFrame can share.
 
@@ -195,7 +190,7 @@ class SharedWithSparse(object):
 
     def test_iteritems(self):
         df = self.klass([[1, 2, 3], [4, 5, 6]], columns=['a', 'a', 'b'])
-        for k, v in compat.iteritems(df):
+        for k, v in df.items():
             assert isinstance(v, self.klass._constructor_sliced)
 
     def test_items(self):
@@ -242,7 +237,7 @@ class SharedWithSparse(object):
                          'ints': lrange(5)}, columns=['floats', 'ints'])
 
         for tup in df.itertuples(index=False):
-            assert isinstance(tup[1], (int, long))
+            assert isinstance(tup[1], int)
 
         df = self.klass(data={"a": [1, 2, 3], "b": [4, 5, 6]})
         dfaa = df[['a', 'a']]
@@ -250,7 +245,7 @@ class SharedWithSparse(object):
         assert (list(dfaa.itertuples()) ==
                 [(0, 1, 1), (1, 2, 2), (2, 3, 3)])
 
-        # repr with be int/long on 32-bit/windows
+        # repr with int on 32-bit/windows
         if not (compat.is_platform_windows() or compat.is_platform_32bit()):
             assert (repr(list(df.itertuples(name=None))) ==
                     '[(0, 1, 4), (1, 2, 5), (2, 3, 6)]')
@@ -345,8 +340,8 @@ class SharedWithSparse(object):
     def test_transpose(self, float_frame):
         frame = float_frame
         dft = frame.T
-        for idx, series in compat.iteritems(dft):
-            for col, value in compat.iteritems(series):
+        for idx, series in dft.items():
+            for col, value in series.items():
                 if np.isnan(value):
                     assert np.isnan(frame[col][idx])
                 else:
@@ -357,16 +352,16 @@ class SharedWithSparse(object):
         mixed = self.klass(data, index=index)
 
         mixed_T = mixed.T
-        for col, s in compat.iteritems(mixed_T):
+        for col, s in mixed_T.items():
             assert s.dtype == np.object_
 
-    @pytest.mark.skipif(PY2, reason="pytest.raises match regex fails")
     def test_swapaxes(self):
         df = self.klass(np.random.randn(10, 5))
         self._assert_frame_equal(df.T, df.swapaxes(0, 1))
         self._assert_frame_equal(df.T, df.swapaxes(1, 0))
         self._assert_frame_equal(df, df.swapaxes(0, 0))
-        msg = "No axis named 2 for object type <class 'type'>"
+        msg = ("No axis named 2 for object type"
+               r" <class 'pandas.core(.sparse)?.frame.(Sparse)?DataFrame'>")
         with pytest.raises(ValueError, match=msg):
             df.swapaxes(2, 5)
 
@@ -400,12 +395,12 @@ class SharedWithSparse(object):
         assert result == expected
 
     def test_iteritems_names(self, float_string_frame):
-        for k, v in compat.iteritems(float_string_frame):
+        for k, v in float_string_frame.items():
             assert v.name == k
 
     def test_series_put_names(self, float_string_frame):
         series = float_string_frame._series
-        for k, v in compat.iteritems(series):
+        for k, v in series.items():
             assert v.name == k
 
     def test_empty_nonzero(self):
@@ -461,7 +456,7 @@ class TestDataFrameMisc(SharedWithSparse):
         cp = deepcopy(float_frame)
         series = cp['A']
         series[:] = 10
-        for idx, value in compat.iteritems(series):
+        for idx, value in series.items():
             assert float_frame['A'][idx] != value
 
     def test_transpose_get_view(self, float_frame):
