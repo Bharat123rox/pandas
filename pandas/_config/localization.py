@@ -37,7 +37,7 @@ def set_locale(new_locale, lc_var=locale.LC_ALL):
         locale.setlocale(lc_var, new_locale)
         normalized_locale = locale.getlocale()
         if all(x is not None for x in normalized_locale):
-            yield '.'.join(normalized_locale)
+            yield ".".join(normalized_locale)
         else:
             yield new_locale
     finally:
@@ -98,16 +98,11 @@ def _valid_locales(locales, normalize):
 
 
 def _default_locale_getter():
-    try:
-        raw_locales = subprocess.check_output(['locale -a'], shell=True)
-    except subprocess.CalledProcessError as e:
-        raise type(e)("{exception}, the 'locale -a' command cannot be found "
-                      "on your system".format(exception=e))
+    raw_locales = subprocess.check_output(["locale -a"], shell=True)
     return raw_locales
 
 
-def get_locales(prefix=None, normalize=True,
-                locale_getter=_default_locale_getter):
+def get_locales(prefix=None, normalize=True, locale_getter=_default_locale_getter):
     """
     Get all the locales that are available on the system.
 
@@ -138,18 +133,27 @@ def get_locales(prefix=None, normalize=True,
     """
     try:
         raw_locales = locale_getter()
-    except Exception:
+    except subprocess.CalledProcessError:
+        # Raised on (some? all?) Windows platforms because Note: "locale -a"
+        #  is not defined
         return None
 
     try:
         # raw_locales is "\n" separated list of locales
         # it may contain non-decodable parts, so split
         # extract what we can and then rejoin.
-        raw_locales = raw_locales.split(b'\n')
+        raw_locales = raw_locales.split(b"\n")
         out_locales = []
         for x in raw_locales:
-            out_locales.append(str(
-                x, encoding=options.display.encoding))
+            try:
+                out_locales.append(str(x, encoding=options.display.encoding))
+            except UnicodeError:
+                # 'locale -a' is used to populated 'raw_locales' and on
+                # Redhat 7 Linux (and maybe others) prints locale names
+                # using windows-1252 encoding.  Bug only triggered by
+                # a few special characters and when there is an
+                # extensive list of installed locales.
+                out_locales.append(str(x, encoding="windows-1252"))
 
     except TypeError:
         pass
@@ -157,6 +161,6 @@ def get_locales(prefix=None, normalize=True,
     if prefix is None:
         return _valid_locales(out_locales, normalize)
 
-    pattern = re.compile('{prefix}.*'.format(prefix=prefix))
-    found = pattern.findall('\n'.join(out_locales))
+    pattern = re.compile(f"{prefix}.*")
+    found = pattern.findall("\n".join(out_locales))
     return _valid_locales(found, normalize)

@@ -1,5 +1,6 @@
 # cython: profile=False
 # cython: boundscheck=False, initializedcheck=False
+from cython import Py_ssize_t
 
 import numpy as np
 import pandas.io.sas.sas_constants as const
@@ -18,8 +19,9 @@ cdef const uint8_t[:] rle_decompress(int result_length,
     cdef:
         uint8_t control_byte, x
         uint8_t[:] result = np.zeros(result_length, np.uint8)
-        int rpos = 0, ipos = 0, length = len(inbuff)
+        int rpos = 0
         int i, nbytes, end_of_first_byte
+        Py_ssize_t ipos = 0, length = len(inbuff)
 
     while ipos < length:
         control_byte = inbuff[ipos] & 0xF0
@@ -103,13 +105,11 @@ cdef const uint8_t[:] rle_decompress(int result_length,
                 result[rpos] = 0x00
                 rpos += 1
         else:
-            raise ValueError("unknown control byte: {byte}"
-                             .format(byte=control_byte))
+            raise ValueError(f"unknown control byte: {control_byte}")
 
     # In py37 cython/clang sees `len(outbuff)` as size_t and not Py_ssize_t
     if <Py_ssize_t>len(result) != <Py_ssize_t>result_length:
-        raise ValueError("RLE: {got} != {expect}".format(got=len(result),
-                                                         expect=result_length))
+        raise ValueError(f"RLE: {len(result)} != {result_length}")
 
     return np.asarray(result)
 
@@ -123,12 +123,13 @@ cdef const uint8_t[:] rdc_decompress(int result_length,
     cdef:
         uint8_t cmd
         uint16_t ctrl_bits, ctrl_mask = 0, ofs, cnt
-        int ipos = 0, rpos = 0, k
+        int rpos = 0, k
         uint8_t[:] outbuff = np.zeros(result_length, dtype=np.uint8)
+        Py_ssize_t ipos = 0, length = len(inbuff)
 
     ii = -1
 
-    while ipos < len(inbuff):
+    while ipos < length:
         ii += 1
         ctrl_mask = ctrl_mask >> 1
         if ctrl_mask == 0:
@@ -191,8 +192,7 @@ cdef const uint8_t[:] rdc_decompress(int result_length,
 
     # In py37 cython/clang sees `len(outbuff)` as size_t and not Py_ssize_t
     if <Py_ssize_t>len(outbuff) != <Py_ssize_t>result_length:
-        raise ValueError("RDC: {got} != {expect}\n"
-                         .format(got=len(outbuff), expect=result_length))
+        raise ValueError(f"RDC: {len(outbuff)} != {result_length}\n")
 
     return np.asarray(outbuff)
 
@@ -268,8 +268,7 @@ cdef class Parser:
                 self.column_types[j] = column_type_string
             else:
                 raise ValueError("unknown column type: "
-                                 "{typ}"
-                                 .format(typ=self.parser.columns[j].ctype))
+                                 f"{self.parser.columns[j].ctype}")
 
         # compression
         if parser.compression == const.rle_compression:
@@ -389,8 +388,7 @@ cdef class Parser:
                         return True
                 return False
             else:
-                raise ValueError("unknown page type: {typ}"
-                                 .format(typ=self.current_page_type))
+                raise ValueError(f"unknown page type: {self.current_page_type}")
 
     cdef void process_byte_array_with_data(self, int offset, int length):
 

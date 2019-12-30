@@ -3,8 +3,6 @@ import operator
 
 import pytest
 
-from pandas.compat import PY36
-
 import pandas as pd
 from pandas.tests.extension import base
 import pandas.util.testing as tm
@@ -25,7 +23,7 @@ def data():
     # Why the while loop? NumPy is unable to construct an ndarray from
     # equal-length ndarrays. Many of our operations involve coercing the
     # EA to an ndarray of objects. To avoid random test failures, we ensure
-    # that our data is coercable to an ndarray. Several tests deal with only
+    # that our data is coercible to an ndarray. Several tests deal with only
     # the first two elements, so that's what we'll check.
 
     while len(data[0]) == len(data[1]):
@@ -37,17 +35,17 @@ def data():
 @pytest.fixture
 def data_missing():
     """Length 2 array with [NA, Valid]"""
-    return JSONArray([{}, {'a': 10}])
+    return JSONArray([{}, {"a": 10}])
 
 
 @pytest.fixture
 def data_for_sorting():
-    return JSONArray([{'b': 1}, {'c': 4}, {'a': 2, 'c': 3}])
+    return JSONArray([{"b": 1}, {"c": 4}, {"a": 2, "c": 3}])
 
 
 @pytest.fixture
 def data_missing_for_sorting():
-    return JSONArray([{'b': 1}, {}, {'a': 4}])
+    return JSONArray([{"b": 1}, {}, {"a": 4}])
 
 
 @pytest.fixture
@@ -62,13 +60,18 @@ def na_cmp():
 
 @pytest.fixture
 def data_for_grouping():
-    return JSONArray([
-        {'b': 1}, {'b': 1},
-        {}, {},
-        {'a': 0, 'c': 2}, {'a': 0, 'c': 2},
-        {'b': 1},
-        {'c': 2},
-    ])
+    return JSONArray(
+        [
+            {"b": 1},
+            {"b": 1},
+            {},
+            {},
+            {"a": 0, "c": 2},
+            {"a": 0, "c": 2},
+            {"b": 1},
+            {"c": 2},
+        ]
+    )
 
 
 class BaseJSON:
@@ -77,28 +80,34 @@ class BaseJSON:
     # Series.values, which raises. We work around it by
     # converting the UserDicts to dicts.
     def assert_series_equal(self, left, right, **kwargs):
-        if left.dtype.name == 'json':
+        if left.dtype.name == "json":
             assert left.dtype == right.dtype
-            left = pd.Series(JSONArray(left.values.astype(object)),
-                             index=left.index, name=left.name)
-            right = pd.Series(JSONArray(right.values.astype(object)),
-                              index=right.index, name=right.name)
+            left = pd.Series(
+                JSONArray(left.values.astype(object)), index=left.index, name=left.name
+            )
+            right = pd.Series(
+                JSONArray(right.values.astype(object)),
+                index=right.index,
+                name=right.name,
+            )
         tm.assert_series_equal(left, right, **kwargs)
 
     def assert_frame_equal(self, left, right, *args, **kwargs):
+        obj_type = kwargs.get("obj", "DataFrame")
         tm.assert_index_equal(
-            left.columns, right.columns,
-            exact=kwargs.get('check_column_type', 'equiv'),
-            check_names=kwargs.get('check_names', True),
-            check_exact=kwargs.get('check_exact', False),
-            check_categorical=kwargs.get('check_categorical', True),
-            obj='{obj}.columns'.format(obj=kwargs.get('obj', 'DataFrame')))
+            left.columns,
+            right.columns,
+            exact=kwargs.get("check_column_type", "equiv"),
+            check_names=kwargs.get("check_names", True),
+            check_exact=kwargs.get("check_exact", False),
+            check_categorical=kwargs.get("check_categorical", True),
+            obj=f"{obj_type}.columns",
+        )
 
-        jsons = (left.dtypes == 'json').index
+        jsons = (left.dtypes == "json").index
 
         for col in jsons:
-            self.assert_series_equal(left[col], right[col],
-                                     *args, **kwargs)
+            self.assert_series_equal(left[col], right[col], *args, **kwargs)
 
         left = left.drop(columns=jsons)
         right = right.drop(columns=jsons)
@@ -113,9 +122,13 @@ class TestInterface(BaseJSON, base.BaseInterfaceTests):
     def test_custom_asserts(self):
         # This would always trigger the KeyError from trying to put
         # an array of equal-length UserDicts inside an ndarray.
-        data = JSONArray([collections.UserDict({'a': 1}),
-                          collections.UserDict({'b': 2}),
-                          collections.UserDict({'c': 3})])
+        data = JSONArray(
+            [
+                collections.UserDict({"a": 1}),
+                collections.UserDict({"b": 2}),
+                collections.UserDict({"c": 3}),
+            ]
+        )
         a = pd.Series(data)
         self.assert_series_equal(a, a)
         self.assert_frame_equal(a.to_frame(), a.to_frame())
@@ -129,7 +142,6 @@ class TestInterface(BaseJSON, base.BaseInterfaceTests):
 
 
 class TestConstructors(BaseJSON, base.BaseConstructorsTests):
-
     @pytest.mark.skip(reason="not implemented constructor from dtype")
     def test_from_dtype(self, data):
         # construct from our dtype & string dtype
@@ -137,7 +149,6 @@ class TestConstructors(BaseJSON, base.BaseConstructorsTests):
 
 
 class TestReshaping(BaseJSON, base.BaseReshapingTests):
-
     @pytest.mark.skip(reason="Different definitions of NA")
     def test_stack(self):
         """
@@ -151,6 +162,10 @@ class TestReshaping(BaseJSON, base.BaseReshapingTests):
         # The base test has NaN for the expected NA value.
         # this matches otherwise
         return super().test_unstack(data, index)
+
+    @pytest.mark.xfail(reason="Inconsistent sizes.")
+    def test_transpose(self, data):
+        super().test_transpose(data)
 
 
 class TestGetitem(BaseJSON, base.BaseGetitemTests):
@@ -168,8 +183,6 @@ class TestMissing(BaseJSON, base.BaseMissingTests):
 
 
 unhashable = pytest.mark.skip(reason="Unhashable")
-unstable = pytest.mark.skipif(not PY36,  # 3.6 or higher
-                              reason="Dictionary order unstable")
 
 
 class TestReduce(base.BaseNoReduceTests):
@@ -186,21 +199,17 @@ class TestMethods(BaseJSON, base.BaseMethodsTests):
         # TODO (EA.factorize): see if _values_for_factorize allows this.
         pass
 
-    @unstable
     def test_argsort(self, data_for_sorting):
         super().test_argsort(data_for_sorting)
 
-    @unstable
     def test_argsort_missing(self, data_missing_for_sorting):
         super().test_argsort_missing(data_missing_for_sorting)
 
-    @unstable
-    @pytest.mark.parametrize('ascending', [True, False])
+    @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values(self, data_for_sorting, ascending):
         super().test_sort_values(data_for_sorting, ascending)
 
-    @unstable
-    @pytest.mark.parametrize('ascending', [True, False])
+    @pytest.mark.parametrize("ascending", [True, False])
     def test_sort_values_missing(self, data_missing_for_sorting, ascending):
         super().test_sort_values_missing(data_missing_for_sorting, ascending)
 
@@ -246,7 +255,6 @@ class TestCasting(BaseJSON, base.BaseCastingTests):
 
 
 class TestGroupby(BaseJSON, base.BaseGroupbyTests):
-
     @unhashable
     def test_groupby_extension_transform(self):
         """
@@ -268,8 +276,7 @@ class TestGroupby(BaseJSON, base.BaseGroupbyTests):
         we'll be able to dispatch unique.
         """
 
-    @unstable
-    @pytest.mark.parametrize('as_index', [True, False])
+    @pytest.mark.parametrize("as_index", [True, False])
     def test_groupby_extension_agg(self, as_index, data_for_grouping):
         super().test_groupby_extension_agg(as_index, data_for_grouping)
 

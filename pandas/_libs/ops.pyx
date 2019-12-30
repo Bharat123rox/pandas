@@ -1,7 +1,7 @@
 import operator
 
-from cpython cimport (PyObject_RichCompareBool,
-                      Py_EQ, Py_NE, Py_LT, Py_LE, Py_GT, Py_GE)
+from cpython.object cimport (PyObject_RichCompareBool,
+                             Py_EQ, Py_NE, Py_LT, Py_LE, Py_GT, Py_GE)
 
 import cython
 from cython import Py_ssize_t
@@ -122,9 +122,8 @@ def vec_compare(object[:] left, object[:] right, object op):
         ndarray[uint8_t, cast=True] result
         int flag
 
-    if n != len(right):
-        raise ValueError('Arrays were different lengths: {n} vs {nright}'
-                         .format(n=n, nright=len(right)))
+    if n != <Py_ssize_t>len(right):
+        raise ValueError(f'Arrays were different lengths: {n} vs {len(right)}')
 
     if op is operator.lt:
         flag = Py_LT
@@ -223,9 +222,8 @@ def vec_binop(object[:] left, object[:] right, object op):
         Py_ssize_t i, n = len(left)
         object[:] result
 
-    if n != len(right):
-        raise ValueError('Arrays were different lengths: {n} vs {nright}'
-                         .format(n=n, nright=len(right)))
+    if n != <Py_ssize_t>len(right):
+        raise ValueError(f'Arrays were different lengths: {n} vs {len(right)}')
 
     result = np.empty(n, dtype=object)
 
